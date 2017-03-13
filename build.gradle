@@ -1,0 +1,109 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        maven { url "http://oss.sonatype.org/content/repositories/snapshots/" }
+    }
+    dependencies {
+        classpath "io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.5.3"
+    }
+}
+
+apply plugin: 'java'
+apply plugin: 'io.codearte.nexus-staging'
+apply plugin: 'signing'
+apply plugin: 'maven'
+
+project.description = "Add UML diagrams (using PlantUML) to Javadocs. Extends the standard Java doclet."
+project.group = 'com.chfourie'
+project.version = '1.0.0'
+
+repositories {
+    mavenCentral()
+}
+
+configurations {
+    umljavadoclet
+}
+
+dependencies {
+    compile files("/Library/Java/JavaVirtualMachines/jdk1.8.0_112.jdk/Contents/Home/lib/tools.jar")
+    compile 'net.sourceforge.plantuml:plantuml:8057'
+    umljavadoclet 'net.sourceforge.plantuml:plantuml:8057'
+    umljavadoclet files('lib/uml-java-doclet-1.0-SNAPSHOT.jar')
+    umljavadoclet jar.outputs.files
+}
+
+
+javadoc {
+    options.tags = [ 'startuml', 'enduml' ]
+    options.doclet = 'info.leadinglight.umljavadoclet.UmlJavaDoclet'
+    options.docletpath = configurations.umljavadoclet.files.asType(List)
+//    options.memberLevel = JavadocMemberLevel.PACKAGE
+}
+
+javadoc.dependsOn jar
+
+task javadocJar(type: Jar) {
+    classifier = 'javadoc'
+    from javadoc
+}
+
+task sourcesJar(type: Jar) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+artifacts {
+    archives javadocJar, sourcesJar
+}
+
+signing {
+    sign configurations.archives
+}
+
+// OSSRH publication
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            // POM signature
+            beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+            // Target repository
+            repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+                authentication(userName: nexusUsername, password: nexusPassword)
+            }
+            pom.project {
+                name project.name
+                description project.description
+                packaging 'jar'
+                url 'https://github.com/chfourie/uml-java-doclet'
+
+                scm {
+                    connection 'scm:git:https://github.com/chfourie/uml-java-doclet.git'
+                    developerConnection 'scm:git:git@github.com:/chfourie/uml-java-doclet.git'
+                    url 'https://github.com/chfourie/uml-java-doclet.git'
+                }
+
+                licenses {
+                    license {
+                        name 'BSD License (original)'
+                        url 'http://www.opensource.org/licenses/bsd-license.php'
+                        distribution 'repo'
+                    }
+                }
+
+                developers {
+                    developer {
+                        id = 'chfourie'
+                        name = 'Charl Fourie'
+                        email = 'charl@chfourie.com'
+                    }
+                }
+            }
+        }
+    }
+}
+
+nexusStaging {
+    username = nexusUsername
+    password = nexusPassword
+}

@@ -1,8 +1,9 @@
 package info.leadinglight.umljavadoclet.model;
 
-import com.sun.javadoc.PackageDoc;
 import java.util.ArrayList;
 import java.util.List;
+
+import com.sun.javadoc.PackageDoc;
 
 /**
  * Represents a package containing classes.
@@ -12,84 +13,98 @@ public class ModelPackage {
         _model = model;
         _packageDoc = packageDoc;
     }
-    
+
     public void map() {
         mapRelationships();
     }
-    
+
     public String fullName() {
         return fullName(_packageDoc);
     }
-    
+
     public String qualifiedName() {
         return fullName(_packageDoc);
     }
-    
+
     public List<ModelClass> classes() {
         return _classes;
     }
-    
+
     public List<ModelPackage> dependencies() {
         return _dependencyPackages;
     }
-    
+
     public List<ModelPackage> dependents() {
         return _dependentPackages;
     }
-    
+
     public static String fullName(PackageDoc packageDoc) {
         return packageDoc.name();
     }
-    
+
     /**
      * Is this package an immediate child package of the specified package?
-     * @param parentPackage Package to check.
+     * 
+     * @param parentPackage
+     *            Package to check.
      * @return Whether or not it is a child package.
      */
     public boolean isChildPackage(ModelPackage parentPackage) {
         if (parentPackage != this) {
             if (qualifiedName().startsWith(parentPackage.qualifiedName())) {
-                String thisPath = qualifiedName().substring(parentPackage.qualifiedName().length() + 1);
-                // If the remaining part of the package name does not contain a period, it is an immediate child.
+                String thisPath = qualifiedName()
+                        .substring(parentPackage.qualifiedName().length() + 1);
+                // If the remaining part of the package name does not contain a
+                // period, it is an immediate child.
                 return (!thisPath.contains("."));
             }
             return false;
         }
         return false;
     }
-    
+
     public String parentPackageFullName() {
-        return qualifiedName().substring(0, qualifiedName().lastIndexOf("."));
+        String qualifiedName = qualifiedName();
+        if (qualifiedName.contains(".")) {
+            return qualifiedName.substring(0, qualifiedName.lastIndexOf("."));
+        } else {
+            return qualifiedName;
+        }
+
     }
-    
+
     // Update model
-    
+
     public void addClass(ModelClass modelClass) {
         if (!_classes.contains(modelClass)) {
             _classes.add(modelClass);
         }
     }
-    
+
     // Mapping
-    
+
     private void mapRelationships() {
-        for (ModelClass modelClass: _classes) {
-            for (ModelRel rel: modelClass.relationships()) {
+        for (ModelClass modelClass : _classes) {
+            for (ModelRel rel : modelClass.relationships()) {
                 if (rel.source() == modelClass) {
                     ModelClass dest = rel.destination();
                     ModelPackage destPackage = dest.modelPackage();
-                    // Only packages that are included in the model are modelled.
+                    // Only packages that are included in the model are
+                    // modelled.
                     if (destPackage != null) {
-                        if (destPackage != this && !_dependencyPackages.contains(destPackage)) {
+                        if (destPackage != this
+                                && !_dependencyPackages.contains(destPackage)) {
                             _dependencyPackages.add(destPackage);
                         }
                     }
                 } else {
                     ModelClass src = rel.source();
                     ModelPackage srcPackage = src.modelPackage();
-                    // Only packages that are included in the model are modelled.
+                    // Only packages that are included in the model are
+                    // modelled.
                     if (srcPackage != null) {
-                        if (srcPackage != this && !_dependentPackages.contains(srcPackage)) {
+                        if (srcPackage != this
+                                && !_dependentPackages.contains(srcPackage)) {
                             _dependentPackages.add(srcPackage);
                         }
                     }
@@ -97,7 +112,7 @@ public class ModelPackage {
             }
         }
     }
-    
+
     private final Model _model;
     private final PackageDoc _packageDoc;
     private final List<ModelClass> _classes = new ArrayList<>();
